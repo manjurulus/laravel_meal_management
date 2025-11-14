@@ -29,26 +29,20 @@ class MealController extends Controller
     /**
      * Store a newly created meal in storage.
      */
+    // MealController.php
     public function store(Request $request)
     {
         $request->validate([
-            'date' => 'required|date',
             'quantity' => 'required|integer|min:1',
+            'date' => 'required|date',
         ]);
 
-        /** @var \App\Models\User|null $user */
-        $user = Auth::user();
+        Meal::create([
+            'user_id' => auth()->id(),
+            'quantity' => $request->quantity,
+            'date' => $request->date,
+        ]);
 
-        if ($user) {
-            Meal::create([
-                'user_id' => $user->id,
-                'date' => $request->date,
-                'quantity' => $request->quantity,
-            ]);
-
-            return redirect()->route('meals.index')->with('success', 'Meal added successfully.');
-        }
-
-        return redirect()->back()->withErrors('User not authenticated.');
+        return back()->with('success', 'Meal recorded.');
     }
 }

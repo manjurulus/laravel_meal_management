@@ -36,23 +36,23 @@ Route::prefix('dev')->controller(DeveloperController::class)->group(function () 
     Route::delete('/{id}', 'destroy')->name('dev.destroy');
 });
 
-// Meal Management routes
+// Authenticated routes
 Route::middleware(['auth'])->group(function () {
 
     // Member routes
     Route::middleware('check.role:member')->group(function () {
         Route::get('/meals', [MealController::class, 'index'])->name('meals.index');
         Route::post('/meals', [MealController::class, 'store'])->name('meals.store');
-        Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index'); // ✅ View only
+        Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
         Route::get('/dues', [BillController::class, 'memberDues'])->name('dues.index');
     });
 
-
+    // Manager routes
     // Manager routes
     Route::middleware('check.role:manager')->group(function () {
         Route::get('/bills', [BillController::class, 'index'])->name('bills.index');
-        Route::post('/bills', [BillController::class, 'store'])->name('bills.store');
-        Route::post('/bills/{bill}/assign', [BillController::class, 'assignToUser'])->name('bills.assign');
+        Route::get('/bills/create-from-meals', [BillController::class, 'createFromMeals'])->name('bills.createFromMeals');
+        Route::post('/bills/store-from-meals', [BillController::class, 'storeFromMeals'])->name('bills.storeFromMeals');
 
         Route::get('/manager/dashboard', [ManagerController::class, 'dashboard'])->name('manager.dashboard');
         Route::get('/manager/users', [ManagerController::class, 'index'])->name('manager.users.index');
@@ -65,14 +65,13 @@ Route::middleware(['auth'])->group(function () {
     // Accountant routes
     Route::middleware('check.role:accountant')->group(function () {
         Route::get('/accountant/payments', [PaymentController::class, 'receive'])->name('accountant.payments.receive');
-        Route::post('/payments', [PaymentController::class, 'store'])->name('payments.store'); // ✅ Only accountants can store payments
+        Route::post('/payments', [PaymentController::class, 'store'])->name('payments.store');
 
         Route::get('/accountant/reports/monthly/{month?}', [ReportController::class, 'monthly'])->name('accountant.reports.monthly');
         Route::get('/accountant/reports/monthly', function () {
             return redirect()->route('accountant.reports.monthly', ['month' => now()->month]);
         })->name('reports.monthly');
     });
-
 
     // Operations routes
     Route::middleware('check.role:operations')->group(function () {

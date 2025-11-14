@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Bill;
-use App\Models\Payment;
-use App\Models\UserBill;
+use App\Models\Meal;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class BillController extends Controller
@@ -15,40 +15,47 @@ class BillController extends Controller
         return view('manager.bills.index', compact('bills'));
     }
 
-    public function store(Request $request)
+    public function createFromMeals()
     {
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'amount' => 'required|numeric|min:0',
-            'due_date' => 'required|date'
-        ]);
-
-        Bill::create($request->all());
-        return back()->with('success', 'Bill created');
+        $members = User::where('role', 'member')->get();
+        return view('manager.bills.create', compact('members'));
     }
 
-    public function assignToUser(Request $request, Bill $bill)
+    public function storeFromMeals(Request $request)
     {
         $request->validate([
             'user_id' => 'required|exists:users,id',
-            'paid_amount' => 'required|numeric|min:0',
-            'payment_date' => 'nullable|date',
+            'start_date' => 'required|date',
+            'end_date' => 'required|date',
+            'rate' => 'required|numeric|min:0',
+        ]);
+
+        $mealCount = Meal::where('user_id', $request->user_id)
+            ->whereBetween('date', [$request->start_date, $request->end_date])
+            ->sum('quantity');
+
+        $amount = $mealCount * $request->rate;
+        $member = User::find($request->user_id);
+
+        $bill = Bill::create([
+            'title' => "{$member->name}'s Bill ({$mealCount} meals × ৳{$request->rate})",
+            'amount' => $amount,
+            'due_date' => now()->addDays(7),
         ]);
 
         $bill->users()->attach($request->user_id, [
-            'paid_amount' => $request->paid_amount,
-            'payment_date' => $request->payment_date,
+            'paid_amount' => 0,
+            'payment_date' => null,
         ]);
 
-        return back()->with('success', 'Bill assigned to user.');
+        return redirect()->route('bills.index')->with('success', 'Bill created from meals.');
     }
 
     public function memberDues()
     {
         $userId = auth()->id();
 
-        // Aggregated dues per bill
-        $userBills = UserBill::with('bill')
+        $userBills = \App\Models\UserBill::with('bill')
             ->where('user_id', $userId)
             ->get()
             ->groupBy('bill_id')
@@ -66,8 +73,7 @@ class BillController extends Controller
                 ];
             });
 
-        // Individual payment history
-        $payments = Payment::where('user_id', $userId)
+        $payments = \App\Models\Payment::where('user_id', $userId)
             ->latest()
             ->get();
 

@@ -9,10 +9,14 @@ class Bill extends Model
     protected $fillable = [
         'title',
         'amount',
-        'due_date'
+        'due_date',
     ];
 
-    // app/Models/Bill.php
+    protected $casts = [
+        'due_date' => 'date',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
 
     public function users()
     {
