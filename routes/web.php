@@ -43,10 +43,10 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware('check.role:member')->group(function () {
         Route::get('/meals', [MealController::class, 'index'])->name('meals.index');
         Route::post('/meals', [MealController::class, 'store'])->name('meals.store');
-        Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
-        Route::post('/payments', [PaymentController::class, 'store'])->name('payments.store');
+        Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index'); // ✅ View only
         Route::get('/dues', [BillController::class, 'memberDues'])->name('dues.index');
     });
+
 
     // Manager routes
     Route::middleware('check.role:manager')->group(function () {
@@ -65,15 +65,14 @@ Route::middleware(['auth'])->group(function () {
     // Accountant routes
     Route::middleware('check.role:accountant')->group(function () {
         Route::get('/accountant/payments', [PaymentController::class, 'receive'])->name('accountant.payments.receive');
+        Route::post('/payments', [PaymentController::class, 'store'])->name('payments.store'); // ✅ Only accountants can store payments
 
-        // ✅ Primary monthly report route
         Route::get('/accountant/reports/monthly/{month?}', [ReportController::class, 'monthly'])->name('accountant.reports.monthly');
-
-        // ✅ Optional fallback route to fix RouteNotFoundException
         Route::get('/accountant/reports/monthly', function () {
             return redirect()->route('accountant.reports.monthly', ['month' => now()->month]);
         })->name('reports.monthly');
     });
+
 
     // Operations routes
     Route::middleware('check.role:operations')->group(function () {

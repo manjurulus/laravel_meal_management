@@ -11,13 +11,17 @@
         <div class="row">
             {{-- ✅ Sidebar --}}
             @auth
-                @include('layouts.sidebar')
+                <div class="col-md-3 col-lg-2 bg-light min-vh-100">
+                    @include('layouts.sidebar')
+                </div>
             @endauth
 
             {{-- ✅ Main content --}}
-            <main class="{{ auth()->check() ? 'col-md-9 ms-sm-auto col-lg-10 px-md-4' : 'col-12 px-4' }}">
-                @yield('content')
-            </main>
+            <div class="{{ auth()->check() ? 'col-md-9 col-lg-10 px-md-4' : 'col-12 px-4' }}">
+                <main class="py-4">
+                    @yield('content')
+                </main>
+            </div>
         </div>
     </div>
 

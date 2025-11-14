@@ -28,24 +28,46 @@ class PaymentController extends Controller
     public function store(Request $request)
     {
         $request->validate([
+            'user_id' => 'required|exists:users,id',
             'amount' => 'required|numeric|min:1',
             'method' => 'nullable|string',
         ]);
 
-        $user = Auth::user();
+        $accountant = Auth::user();
 
-        if ($user) {
+        if ($accountant && $accountant->role === 'accountant') {
+            // 1. Record payment
             Payment::create([
-                'user_id' => $user->id,
+                'user_id' => $request->user_id,
                 'amount' => $request->amount,
                 'method' => $request->method,
-                // 'created_at' is automatically handled by Laravel
+                'payment_date' => now(),
             ]);
 
-            return redirect()->route('payments.index')->with('success', 'Payment recorded.');
+            // 2. Apply payment to earliest unpaid bill
+            $user = \App\Models\User::find($request->user_id);
+
+            $unpaidBill = $user->bills()
+                ->withPivot('paid_amount')
+                ->get()
+                ->filter(fn ($bill) => $bill->pivot->paid_amount < $bill->amount)
+                ->sortBy('due_date')
+                ->first();
+
+            if ($unpaidBill) {
+                $currentPaid = $unpaidBill->pivot->paid_amount;
+                $newPaid = $currentPaid + $request->amount;
+
+                $user->bills()->updateExistingPivot($unpaidBill->id, [
+                    'paid_amount' => $newPaid,
+                    'payment_date' => now(),
+                ]);
+            }
+
+            return back()->with('success', 'Payment recorded for member.');
         }
 
-        return redirect()->route('payments.index')->withErrors('User not authenticated.');
+        return back()->withErrors('Only accountants can record payments.');
     }
 
     /**

@@ -16,7 +16,9 @@ class Bill extends Model
 
     public function users()
     {
-        return $this->belongsToMany(User::class, 'bill_user');
+        return $this->belongsToMany(User::class, 'user_bills')
+                    ->withPivot('paid_amount', 'payment_date')
+                    ->withTimestamps();
     }
 
     public function userBills()

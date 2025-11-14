@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\View; // ✅ REQUIRED
+use App\Models\User;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -19,6 +21,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        View::composer('layouts.sidebar', function ($view) {
+            if (auth()->check() && auth()->user()->role === 'accountant') {
+                $members = User::where('role', 'member')->orderBy('name')->get();
+                $view->with('members', $members);
+            }
+        });
     }
 }

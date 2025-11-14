@@ -3,8 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Bill;
-use Illuminate\Http\Request;
+use App\Models\Payment;
 use App\Models\UserBill;
+use Illuminate\Http\Request;
 
 class BillController extends Controller
 {
@@ -21,6 +22,7 @@ class BillController extends Controller
             'amount' => 'required|numeric|min:0',
             'due_date' => 'required|date'
         ]);
+
         Bill::create($request->all());
         return back()->with('success', 'Bill created');
     }
@@ -32,10 +34,12 @@ class BillController extends Controller
             'paid_amount' => 'required|numeric|min:0',
             'payment_date' => 'nullable|date',
         ]);
+
         $bill->users()->attach($request->user_id, [
             'paid_amount' => $request->paid_amount,
             'payment_date' => $request->payment_date,
         ]);
+
         return back()->with('success', 'Bill assigned to user.');
     }
 
@@ -43,6 +47,7 @@ class BillController extends Controller
     {
         $userId = auth()->id();
 
+        // Aggregated dues per bill
         $userBills = UserBill::with('bill')
             ->where('user_id', $userId)
             ->get()
@@ -61,6 +66,14 @@ class BillController extends Controller
                 ];
             });
 
-        return view('member.dues.index', ['bills' => $userBills]);
+        // Individual payment history
+        $payments = Payment::where('user_id', $userId)
+            ->latest()
+            ->get();
+
+        return view('member.dues.index', [
+            'bills' => $userBills,
+            'payments' => $payments,
+        ]);
     }
 }
